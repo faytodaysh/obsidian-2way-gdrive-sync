@@ -13,6 +13,35 @@ I developed this plugin because existing Google Drive sync solutions often requi
 - **Mobile Compatible**: Works flawlessly on Obsidian for iOS and Android using cross-platform hashing and native requests.
 - **Auto-Sync**: Automatically detects when you stop typing and syncs your changes silently in the background.
 
+## 🛡️ Refined Conflict Resolution Strategies (✨ Exclusive Feature)
+
+Most file synchronization tools handle editing conflicts crudely—either by generating dozens of cluttered `_(Conflict_Timestamp).md` duplicate files that litter your directories, or by silently overwriting changes, causing potential data loss.
+
+This plugin introduces **highly granular, user-selectable conflict resolution strategies**, highlighting our two premium, recommended options (switchable anytime in settings):
+
+### 1. Smart Auto-Merge ⭐️ ⭐️ ⭐️ (Highly Recommended)
+*   **The Experience**: **100% clean workspaces with zero duplicate junk files!**
+*   **How it works**: Uses a Git-style line-based three-way merge algorithm. If you edit line A locally and line B is edited on Google Drive, the plugin automatically **fuses them into one note** with zero user intervention.
+*   **Overlapping Conflicts**: If the exact same line was modified on both sides, the plugin **does not** create a new file. Instead, it embeds standard **Git conflict markers** directly inside your note:
+    ```markdown
+    <<<<<<< 本地修改 (Local)
+    Your local modifications...
+    =======
+    Remote changes synced from Google Drive...
+    >>>>>>> 云端修改 (Remote)
+    ```
+    Simply clean up the markers and the unwanted version in your standard editor whenever you open the note.
+
+### 2. Interactive Visual Diff Modal ⭐️ ⭐️
+*   **The Experience**: **Total precision and visual control.**
+*   **How it works**: When a conflict is detected, the plugin pauses sync for that specific file and opens a **gorgeous, side-by-side comparative UI** inside Obsidian.
+*   *   **Left Column** shows your local device version.
+*   *   **Right Column** shows the Google Drive cloud version.
+*   *   **Center-Bottom Merge Editor** is preloaded with the auto-merged text, enabling direct manual edits.
+*   *   Action buttons `[Keep Local]`, `[Keep Remote]`, and `[Submit Merged Changes]` resolve the conflict in a single click.
+
+*(Note: We also provide standard strategies such as **Latest Wins**, **Keep Both (creates conflicted copy)**, **Local Wins (force upload)**, and **Remote Wins (force download)** to suit any workflow!)*
+
 ## Setup Instructions (Read Carefully)
 
 Because this plugin connects directly to Google Drive without any middleman servers, you need to provide your own Google Client ID and Secret. The process involves navigating Google Cloud Console, which can seem complex but takes only about 5 minutes.
