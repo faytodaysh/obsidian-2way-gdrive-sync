@@ -44,4 +44,7 @@ npm run build
 ```
 
 ## License
-MIT
+
+This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)** license.
+
+You are free to use, modify, and redistribute this software for personal and non-commercial purposes, provided that you give appropriate credit and distribute your modifications under the same license. **Commercial use is strictly prohibited.**
