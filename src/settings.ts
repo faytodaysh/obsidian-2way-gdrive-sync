@@ -14,7 +14,23 @@ export class GDriveSyncSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Google Drive 2-Way Sync Settings' });
+    containerEl.createEl('h2', { text: 'Google Drive 2-Way Sync' });
+    
+    const version = this.plugin.manifest.version;
+    const aboutDiv = containerEl.createDiv('gdrive-sync-about');
+    aboutDiv.style.marginBottom = '20px';
+    aboutDiv.style.padding = '10px';
+    aboutDiv.style.backgroundColor = 'var(--background-secondary)';
+    aboutDiv.style.borderRadius = '5px';
+    
+    aboutDiv.createEl('h3', { text: `Version: v${version}` });
+    const changelog = aboutDiv.createEl('ul');
+    changelog.style.marginTop = '0';
+    changelog.createEl('li', { text: 'v1.0.2: Fixed empty JSON bug on file deletion.' });
+    changelog.createEl('li', { text: 'v1.0.1: Added UI Logging, fixed cache bugs.' });
+    changelog.createEl('li', { text: 'v1.0.0: Initial Release.' });
+
+    containerEl.createEl('h3', { text: 'Settings' });
 
     new Setting(containerEl)
       .setName('Google Client ID')
