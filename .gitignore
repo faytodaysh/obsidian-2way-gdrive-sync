@@ -1,0 +1,5 @@
+node_modules/
+.node/
+main.js
+styles.css
+.gdrive-sync-metadata.json
