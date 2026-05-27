@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import GDriveSyncPlugin from './main';
+import { LogModal } from './log-modal';
 
 export class GDriveSyncSettingTab extends PluginSettingTab {
   plugin: GDriveSyncPlugin;
@@ -95,6 +96,17 @@ export class GDriveSyncSettingTab extends PluginSettingTab {
             this.plugin.settings.syncInterval = parsed;
             await this.plugin.saveSettings();
           }
+        }));
+
+    containerEl.createEl('h2', { text: 'Troubleshooting' });
+
+    new Setting(containerEl)
+      .setName('Sync Logs')
+      .setDesc('View, copy, or clear the sync logs to troubleshoot issues.')
+      .addButton(btn => btn
+        .setButtonText('View Logs')
+        .onClick(() => {
+          new LogModal(this.app, this.plugin.logger).open();
         }));
   }
 }

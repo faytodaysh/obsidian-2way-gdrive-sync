@@ -4,6 +4,7 @@ import { OAuthClient, OAuthTokens } from './oauth';
 import { DriveClient } from './drive-client';
 import { Scanner } from './scanner';
 import { SyncEngine } from './sync-engine';
+import { Logger } from './logger';
 
 export interface GDriveSyncSettings {
   clientId: string;
@@ -28,14 +29,18 @@ export default class GDriveSyncPlugin extends Plugin {
   scanner: Scanner;
   syncEngine: SyncEngine;
   statusBarItemEl: HTMLElement;
+  logger: Logger;
 
   async onload() {
     await this.loadSettings();
 
+    this.logger = new Logger(this);
     this.oauthClient = new OAuthClient(this.settings.clientId, this.settings.clientSecret, this.settings.tokens || undefined);
     this.driveClient = new DriveClient(this.oauthClient);
     this.scanner = new Scanner(this.app, this.driveClient);
-    this.syncEngine = new SyncEngine(this.app, this.driveClient, this.scanner);
+    this.syncEngine = new SyncEngine(this.app, this.driveClient, this.scanner, this.logger);
+    
+    this.logger.info('GDrive Sync Plugin loaded.');
 
     const ribbonIconEl = this.addRibbonIcon('refresh-cw', 'Sync with Google Drive', async (evt: MouseEvent) => {
       this.updateStatusBar('Syncing...');
@@ -74,7 +79,8 @@ export default class GDriveSyncPlugin extends Plugin {
     try {
       await this.syncEngine.runSync(this.settings.syncFolder, '\\.obsidian|\\.trash');
       this.updateStatusBar(`Last sync: ${new Date().toLocaleTimeString()}`);
-    } catch (e) {
+    } catch (e: any) {
+      this.logger.error('Sync failed in runSync', e);
       this.updateStatusBar('Sync Failed');
     }
   }
@@ -92,6 +98,6 @@ export default class GDriveSyncPlugin extends Plugin {
     this.oauthClient = new OAuthClient(this.settings.clientId, this.settings.clientSecret, this.settings.tokens || undefined);
     this.driveClient = new DriveClient(this.oauthClient);
     this.scanner = new Scanner(this.app, this.driveClient);
-    this.syncEngine = new SyncEngine(this.app, this.driveClient, this.scanner);
+    this.syncEngine = new SyncEngine(this.app, this.driveClient, this.scanner, this.logger);
   }
 }

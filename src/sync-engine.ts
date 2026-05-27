@@ -2,6 +2,7 @@ import { App, Notice, TFile } from 'obsidian';
 import { DriveClient } from './drive-client';
 import { Scanner } from './scanner';
 import { calculateMD5 } from './md5';
+import { Logger } from './logger';
 
 export interface SyncMetadataStore {
   lastSyncTime: number;
@@ -16,35 +17,31 @@ export class SyncEngine {
   private app: App;
   private driveClient: DriveClient;
   private scanner: Scanner;
+  private logger: Logger;
   private metadataFile = '.gdrive-sync-metadata.json';
   
-  constructor(app: App, driveClient: DriveClient, scanner: Scanner) {
+  constructor(app: App, driveClient: DriveClient, scanner: Scanner, logger: Logger) {
     this.app = app;
     this.driveClient = driveClient;
     this.scanner = scanner;
+    this.logger = logger;
   }
 
   private async loadMetadata(): Promise<SyncMetadataStore> {
-    const file = this.app.vault.getAbstractFileByPath(this.metadataFile);
-    if (file instanceof TFile) {
-      const content = await this.app.vault.read(file);
-      try {
+    try {
+      if (await this.app.vault.adapter.exists(this.metadataFile)) {
+        const content = await this.app.vault.adapter.read(this.metadataFile);
         return JSON.parse(content) as SyncMetadataStore;
-      } catch (e) {
-        return { lastSyncTime: 0, files: {} };
       }
+    } catch (e) {
+      this.logger.error('Failed to load metadata', e);
     }
     return { lastSyncTime: 0, files: {} };
   }
 
   private async saveMetadata(metadata: SyncMetadataStore) {
-    const file = this.app.vault.getAbstractFileByPath(this.metadataFile);
     const content = JSON.stringify(metadata, null, 2);
-    if (file instanceof TFile) {
-      await this.app.vault.modify(file, content);
-    } else {
-      await this.app.vault.create(this.metadataFile, content);
-    }
+    await this.app.vault.adapter.write(this.metadataFile, content);
   }
 
   private async getOrCreateDriveFolder(folderName: string, parentId?: string): Promise<string> {
@@ -71,6 +68,7 @@ export class SyncEngine {
   }
 
   public async runSync(syncFolderName: string, excludePattern: string = '') {
+    this.logger.info('Starting Google Drive Sync...');
     new Notice('Starting Google Drive Sync...');
     try {
       const driveFolderId = await this.getOrCreateDriveFolder(syncFolderName);
@@ -97,16 +95,29 @@ export class SyncEngine {
         
         // 1. Conflict: Both modified
         if (localModified && remoteModified && local.md5 !== remote.md5Checksum) {
-           console.log(`[Sync] Conflict on ${path}. Handling conflict...`);
+           this.logger.warn(`[Sync] Conflict on ${path}. Handling conflict...`);
            const conflictContent = await this.driveClient.downloadFile(remote.id);
            const conflictExtIdx = path.lastIndexOf('.');
            const ext = conflictExtIdx > -1 ? path.substring(conflictExtIdx) : '';
            const base = conflictExtIdx > -1 ? path.substring(0, conflictExtIdx) : path;
            const conflictPath = `${base}_(Conflict_${Date.now()})${ext}`;
            
-           await this.app.vault.createBinary(conflictPath, conflictContent);
+           try {
+             await this.app.vault.createBinary(conflictPath, conflictContent);
+           } catch (e: any) {
+             if (e.message && e.message.includes('already exists')) {
+               const existing = this.app.vault.getAbstractFileByPath(conflictPath);
+               if (existing instanceof TFile) {
+                 await this.app.vault.modifyBinary(existing, conflictContent);
+               } else {
+                 await this.app.vault.adapter.writeBinary(conflictPath, conflictContent);
+               }
+             } else {
+               throw e;
+             }
+           }
            
-           const localContent = await this.app.vault.readBinary(this.app.vault.getAbstractFileByPath(path) as TFile);
+           const localContent = await this.app.vault.adapter.readBinary(path);
            const updatedRemote = await this.driveClient.updateFile(remote.id, localContent);
            
            newMetadata.files[path] = { fileId: updatedRemote.id, md5: local.md5, mtime: local.mtime };
@@ -115,9 +126,8 @@ export class SyncEngine {
 
         // 2. Local Modified (Upload)
         if (localModified && !remoteModified) {
-          console.log(`[Sync] Uploading local changes for ${path}`);
-          const fileObj = this.app.vault.getAbstractFileByPath(path) as TFile;
-          const localContent = await this.app.vault.readBinary(fileObj);
+          this.logger.info(`[Sync] Uploading local changes for ${path}`);
+          const localContent = await this.app.vault.adapter.readBinary(path);
           
           if (remote) {
             const updatedRemote = await this.driveClient.updateFile(remote.id, localContent);
@@ -133,15 +143,24 @@ export class SyncEngine {
 
         // 3. Remote Modified (Download)
         if (remoteModified && !localModified) {
-           console.log(`[Sync] Downloading remote changes for ${path}`);
+           this.logger.info(`[Sync] Downloading remote changes for ${path}`);
            const remoteContent = await this.driveClient.downloadFile(remote.id);
            
-           // Ensure local folders exist
+           // Ensure local folders exist (recursively)
            const parts = path.split('/');
            if (parts.length > 1) {
-               const folderPath = parts.slice(0, -1).join('/');
-               if (!this.app.vault.getAbstractFileByPath(folderPath)) {
-                   await this.app.vault.createFolder(folderPath);
+               let currentPath = '';
+               for (let i = 0; i < parts.length - 1; i++) {
+                   currentPath = currentPath === '' ? parts[i] : currentPath + '/' + parts[i];
+                   if (!this.app.vault.getAbstractFileByPath(currentPath)) {
+                       try {
+                           await this.app.vault.createFolder(currentPath);
+                       } catch (e: any) {
+                           if (!e.message || !e.message.includes('already exists')) {
+                               throw e;
+                           }
+                       }
+                   }
                }
            }
 
@@ -149,16 +168,37 @@ export class SyncEngine {
            if (fileObj instanceof TFile) {
              await this.app.vault.modifyBinary(fileObj, remoteContent);
            } else {
-             fileObj = await this.app.vault.createBinary(path, remoteContent);
+             try {
+               fileObj = await this.app.vault.createBinary(path, remoteContent);
+             } catch (e: any) {
+               if (e.message && e.message.includes('already exists')) {
+                 // Fallback to modify if Obsidian cache was stale
+                 // We must read it from disk or just try to get it again.
+                 // Obsidian API doesn't have a direct raw write if getAbstractFileByPath fails, 
+                 // but we can try to find it again or force update.
+                 const staleFile = this.app.vault.getAbstractFileByPath(path);
+                 if (staleFile instanceof TFile) {
+                    await this.app.vault.modifyBinary(staleFile, remoteContent);
+                    fileObj = staleFile;
+                 } else {
+                    // Worst case: use adapter to write directly bypassing cache
+                    await this.app.vault.adapter.writeBinary(path, remoteContent);
+                    // Still need a TFile for metadata, we might get null, so mtime will be Date.now()
+                 }
+               } else {
+                 throw e;
+               }
+             }
            }
            
-           newMetadata.files[path] = { fileId: remote.id, md5: remote.md5Checksum || calculateMD5(remoteContent), mtime: (fileObj as TFile).stat.mtime };
+           const finalMtime = fileObj && fileObj instanceof TFile ? fileObj.stat.mtime : Date.now();
+           newMetadata.files[path] = { fileId: remote.id, md5: remote.md5Checksum || calculateMD5(remoteContent), mtime: finalMtime };
            continue;
         }
 
         // 4. Local Deleted
         if (!local && lastSync && !remoteModified) {
-           console.log(`[Sync] Local deleted. Deleting remote for ${path}`);
+           this.logger.info(`[Sync] Local deleted. Deleting remote for ${path}`);
            if (remote) {
              await this.driveClient.deleteFile(remote.id);
            }
@@ -167,7 +207,7 @@ export class SyncEngine {
 
         // 5. Remote Deleted
         if (!remote && lastSync && !localModified) {
-           console.log(`[Sync] Remote deleted. Deleting local for ${path}`);
+           this.logger.info(`[Sync] Remote deleted. Deleting local for ${path}`);
            if (local) {
              const fileObj = this.app.vault.getAbstractFileByPath(path);
              if (fileObj) await this.app.vault.trash(fileObj, true);
@@ -182,9 +222,10 @@ export class SyncEngine {
       }
 
       await this.saveMetadata(newMetadata);
+      this.logger.info('Google Drive Sync Completed Successfully!');
       new Notice('Google Drive Sync Completed Successfully!');
     } catch (error: any) {
-      console.error('[Sync Engine Error]', error);
+      this.logger.error('[Sync Engine Error]', error);
       new Notice(`Sync failed: ${error.message}`);
     }
   }

@@ -39,6 +39,10 @@ export class DriveClient {
       throw new Error(`Drive API Error: ${response.status} ${response.text}`);
     }
 
+    if (response.status === 204 || !response.text) {
+      return null;
+    }
+
     if (options.method === 'GET' && !endpoint.includes('alt=media')) {
        return response.json;
     }
