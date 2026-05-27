@@ -26,6 +26,7 @@ export class GDriveSyncSettingTab extends PluginSettingTab {
     aboutDiv.createEl('h3', { text: `Version: v${version}` });
     const changelog = aboutDiv.createEl('ul');
     changelog.style.marginTop = '0';
+    changelog.createEl('li', { text: 'v1.0.3: Added Conflict Resolution Strategy setting.' });
     changelog.createEl('li', { text: 'v1.0.2: Fixed empty JSON bug on file deletion.' });
     changelog.createEl('li', { text: 'v1.0.1: Added UI Logging, fixed cache bugs.' });
     changelog.createEl('li', { text: 'v1.0.0: Initial Release.' });
@@ -112,6 +113,22 @@ export class GDriveSyncSettingTab extends PluginSettingTab {
             this.plugin.settings.syncInterval = parsed;
             await this.plugin.saveSettings();
           }
+        }));
+
+    new Setting(containerEl)
+      .setName('Conflict Resolution Strategy')
+      .setDesc('How to handle sync conflicts when a file is modified on both sides since last sync.')
+      .addDropdown(dropdown => dropdown
+        .addOption('auto-merge', 'Auto-Merge (智能自动合并 + 冲突标记 - 推荐)')
+        .addOption('visual-diff', 'Visual Diff Modal (可视化对比弹窗)')
+        .addOption('keep-both', 'Keep Both Versions (保留双方 - 备份文件)')
+        .addOption('local-wins', 'Local Wins (本地优先)')
+        .addOption('remote-wins', 'Remote Wins (云端优先)')
+        .addOption('latest-wins', 'Latest Edit Wins (最新修改优先)')
+        .setValue(this.plugin.settings.conflictStrategy || 'auto-merge')
+        .onChange(async (value) => {
+          this.plugin.settings.conflictStrategy = value as any;
+          await this.plugin.saveSettings();
         }));
 
     containerEl.createEl('h2', { text: 'Troubleshooting' });

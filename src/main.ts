@@ -12,6 +12,7 @@ export interface GDriveSyncSettings {
   syncFolder: string;
   syncInterval: number;
   tokens: OAuthTokens | null;
+  conflictStrategy: 'keep-both' | 'local-wins' | 'remote-wins' | 'latest-wins' | 'auto-merge' | 'visual-diff';
 }
 
 const DEFAULT_SETTINGS: GDriveSyncSettings = {
@@ -19,7 +20,8 @@ const DEFAULT_SETTINGS: GDriveSyncSettings = {
   clientSecret: '',
   syncFolder: 'ObsidianVault',
   syncInterval: 15,
-  tokens: null
+  tokens: null,
+  conflictStrategy: 'auto-merge'
 };
 
 export default class GDriveSyncPlugin extends Plugin {
@@ -77,7 +79,7 @@ export default class GDriveSyncPlugin extends Plugin {
       return;
     }
     try {
-      await this.syncEngine.runSync(this.settings.syncFolder, '\\.obsidian|\\.trash');
+      await this.syncEngine.runSync(this.settings.syncFolder, '\\.obsidian|\\.trash', this.settings);
       this.updateStatusBar(`Last sync: ${new Date().toLocaleTimeString()}`);
     } catch (e: any) {
       this.logger.error('Sync failed in runSync', e);

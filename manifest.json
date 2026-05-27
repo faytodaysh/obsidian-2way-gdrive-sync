@@ -1,7 +1,7 @@
 {
   "id": "obsidian-2way-gdrive-sync",
   "name": "Obsidian 2-Way Google Drive Sync",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "minAppVersion": "1.4.0",
   "description": "Seamless, secure, and direct 2-way sync between your Obsidian Vault and Google Drive.",
   "author": "Antigravity",
