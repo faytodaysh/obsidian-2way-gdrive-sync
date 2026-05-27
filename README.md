@@ -1,6 +1,11 @@
 # Obsidian 2-Way Google Drive Sync
 
+[🇨🇳 简体中文 (Simplified Chinese)](./README_zh-CN.md)
+
 A seamless, secure, and direct 2-way sync plugin for Obsidian and Google Drive. This plugin allows you to sync your Obsidian Vault directly with a dedicated Google Drive folder across desktop and mobile devices, without relying on any third-party centralized servers.
+
+## Why I Built This
+I developed this plugin because existing Google Drive sync solutions often require paid subscriptions, and the free alternatives available in the community typically only support one-way synchronization (backup only). I wanted to create a completely free, true two-way sync experience that puts you in full control of your data.
 
 ## Features
 - **True 2-Way Sync**: Smart Three-Way Reconciliation engine safely handles uploads, downloads, and conflict resolution.
