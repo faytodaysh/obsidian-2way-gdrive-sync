@@ -26,6 +26,7 @@ export class GDriveSyncSettingTab extends PluginSettingTab {
     aboutDiv.createEl('h3', { text: `Version: v${version}` });
     const changelog = aboutDiv.createEl('ul');
     changelog.style.marginTop = '0';
+    changelog.createEl('li', { text: 'v1.0.4: Fixed empty textarea bug on Visual Diff modal.' });
     changelog.createEl('li', { text: 'v1.0.3: Added Conflict Resolution Strategy setting.' });
     changelog.createEl('li', { text: 'v1.0.2: Fixed empty JSON bug on file deletion.' });
     changelog.createEl('li', { text: 'v1.0.1: Added UI Logging, fixed cache bugs.' });

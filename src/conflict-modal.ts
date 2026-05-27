@@ -63,26 +63,26 @@ export class ConflictModal extends Modal {
     });
     localCol.createEl('h4', { text: '💻 本地设备内容 (Local)', attr: { style: 'margin-top:0; color: var(--text-accent);' } });
     const localText = localCol.createEl('textarea', {
-      value: this.localContent,
       attr: { 
         readonly: 'true', 
         style: 'width: 100%; flex-grow: 1; font-family: var(--font-monospace); font-size: 0.85em; padding: 10px; border-radius: 4px; border: 1px solid var(--background-modifier-border); background-color: var(--background-secondary); resize: none;' 
       }
-    });
-
+    }) as HTMLTextAreaElement;
+    localText.value = this.localContent;
+ 
     // Remote column
     const remoteCol = columnsContainer.createDiv({
       attr: { style: 'display: flex; flex-direction: column;' }
     });
     remoteCol.createEl('h4', { text: '☁️ Google Drive 云端内容 (Remote)', attr: { style: 'margin-top:0; color: var(--text-success);' } });
     const remoteText = remoteCol.createEl('textarea', {
-      value: this.remoteContent,
       attr: { 
         readonly: 'true', 
         style: 'width: 100%; flex-grow: 1; font-family: var(--font-monospace); font-size: 0.85em; padding: 10px; border-radius: 4px; border: 1px solid var(--background-modifier-border); background-color: var(--background-secondary); resize: none;' 
       }
-    });
-
+    }) as HTMLTextAreaElement;
+    remoteText.value = this.remoteContent;
+ 
     // Manual merge editing area
     const mergeSection = contentEl.createDiv({
       attr: { style: 'display: flex; flex-direction: column; margin-bottom: 20px;' }
@@ -92,11 +92,11 @@ export class ConflictModal extends Modal {
       attr: { style: 'margin-top: 0; color: var(--text-warning);' } 
     });
     const mergeTextarea = mergeSection.createEl('textarea', {
-      value: this.autoMergedContent || this.localContent,
       attr: { 
         style: 'width: 100%; height: 180px; font-family: var(--font-monospace); font-size: 0.85em; padding: 10px; border-radius: 4px; border: 1px solid var(--background-modifier-border); background-color: var(--background-primary); resize: vertical;' 
       }
-    });
+    }) as HTMLTextAreaElement;
+    mergeTextarea.value = this.autoMergedContent || this.localContent;
 
     // Control buttons
     const actionContainer = contentEl.createDiv({
