@@ -3,3 +3,4 @@ node_modules/
 main.js
 styles.css
 .gdrive-sync-metadata.json
+.github_token
